@@ -27,9 +27,9 @@
         lowered (map lower-and-replace filtered)]
     (cjstr/split (apply str lowered) #"\s+")))
 
-(defn process-content [content]
+(defn process-content [content initial-i initial-map]
   (let [words (tokenize content)]
-    (loop [ws words i 0 hmap (hash-map)]
+    (loop [ws words i initial-i hmap initial-map]
       (if (empty? ws)
-        hmap
+        [hmap i]
         (recur (rest ws) (+ i 1) (merge-with concat hmap (hash-map (first ws) (list i))))))))
