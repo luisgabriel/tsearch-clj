@@ -1,4 +1,4 @@
-*/target
+*target/
 /lib
 /classes
 /checkouts
@@ -11,4 +11,4 @@ pom.xml.asc
 .lein-plugins
 .lein-repl-history
 .directory
-/data
+/data*
