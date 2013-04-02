@@ -2,6 +2,7 @@
   (:require [tsearch.scanner :as scanner])
   (:require [tsearch.lexer :as lexer])
   (:require [tsearch.index :as index])
+  (:require [tsearch.query :as query])
   (:gen-class))
 
 (defn all-occurrences [files]
@@ -22,5 +23,5 @@
   (def global-index (index/build-index occurrences))
 
   (println (str "Path: " (first args)))
-  (println (pr-str (find global-index "way")))
+  (println (pr-str (query/perform (query/parseq (nth args 1)) global-index)))
 )
