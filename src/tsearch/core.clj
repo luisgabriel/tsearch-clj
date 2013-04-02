@@ -2,6 +2,7 @@
   (:require [clojure.java.io :as cjio])
   (:require [tsearch.scanner :as scanner])
   (:require [tsearch.lexer :as lexer])
+  (:require [tsearch.index :as index])
   (:gen-class))
 
 (defn occurrences-of [file initial-i]
@@ -30,9 +31,8 @@
 
   (def files (scanner/all-files (first args)))
   (def occurrences (all-occurrences files))
+  (def global-index (index/build-index occurrences))
 
   (println (str "Path: " (first args)))
-  (doseq [oc occurrences]
-    (print (str "-> " (first oc) ": "))
-    (println (count (nth oc 1))))
+  (println (pr-str (find global-index "way")))
 )
