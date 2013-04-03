@@ -1,19 +1,17 @@
 (ns tsearch.index)
 
-(defn insert [pair index]
-  (let [file-path (nth pair 0)
-        occurrences (seq (nth pair 1))]
+(def empty-index {:index (hash-map) :nfiles 0})
+
+(defn insert [oc-pair index-obj]
+  (let [file-path (first oc-pair)
+        occurrences (seq (nth oc-pair 1))
+        index (:index index-obj)
+        file-counter (:nfiles index-obj)]
     (loop [ocs occurrences new-index index]
       (if (empty? ocs)
-        new-index
+        {:index new-index :nfiles (+ file-counter 1)}
+
         (let [oc-pair (first ocs)
               word (key oc-pair)
               positions (val oc-pair)]
           (recur (rest ocs) (merge-with concat new-index (hash-map word (list [file-path positions])))))))))
-
-(defn build-index [occurrences]
-  (loop [ocs occurrences index (hash-map)]
-    (if (empty? ocs)
-      index
-      (recur (rest ocs) (insert (first ocs) index)))))
-
