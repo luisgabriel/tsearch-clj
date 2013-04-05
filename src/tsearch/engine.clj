@@ -10,6 +10,7 @@
 (def query-threads (agent '()))
 
 (def word-counter (ref 0))
+(def file-counter (ref 0))
 
 (defn- next-file []
   (let[file (first (ensure files))]
@@ -52,8 +53,9 @@
     (let [file (dosync (next-file))]
       (if file
         (let [file-path (.getCanonicalPath file)
-              words (process-file file max-files index-buffer)]
-          (logger/file-processed id file-path words))))))
+              words (process-file file max-files index-buffer)
+              files (dosync (alter file-counter inc))]
+          (logger/file-processed id file-path words files))))))
 
 (defn process-files [nindices max-files nworkers fs]
   (let [index-buffer (buffer/newb (repeatedly nindices index/empty-index))]
