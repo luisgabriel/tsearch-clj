@@ -1,5 +1,6 @@
 (ns tsearch.query
-  (:require [tsearch.lexer :as lexer]))
+  (:require [tsearch.lexer :as lexer])
+  (:require [tsearch.index :as index]))
 
 (defn parseq [content]
   (lexer/tokenize content))
@@ -30,7 +31,7 @@
   (count-o (map #(nth % 1) words-occurs)))
 
 (defn perform [words index]
-  (let [all-occurrences (map (fn [w] [w (val (find index w))]) words)
+  (let [all-occurrences (map (fn [w] [w (index/find-oc w index)]) words)
         queryMap (reduce insert (hash-map) all-occurrences)
         wordCounter (count words)
         filteredMap (select-keys queryMap (for [[k v] queryMap :when (= (count v) wordCounter)] k))]

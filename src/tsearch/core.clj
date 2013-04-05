@@ -13,10 +13,10 @@
   (def max-files 3) ; max number of files indexed per sub-index
 
   (def files (scanner/all-files (first args)))
-  (def file-buffer (buffer/newb files true))
 
-  (println (str "Path: " (first args)) "   Files:" (count (:queue @file-buffer)))
+  (println (str "Path: " (first args)) "   Files:" (count files))
 
-  (def qi-buffer (engine/process-files nindices max-files nworkers file-buffer))
+  (engine/process-files nindices max-files nworkers files)
+  (engine/process-search (rest args))
 
 )
