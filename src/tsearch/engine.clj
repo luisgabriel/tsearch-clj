@@ -6,7 +6,7 @@
 
 (def files (ref '()))
 (def query-indices (agent '()))
-(def qfutures (agent '()))
+(def query-threads (agent '()))
 
 (defn- next-file []
   (let[file (first (ensure files))]
@@ -76,25 +76,27 @@
         r (query/perform query index)]
     (dorun r)
     (dosync
-      (ensure query-obj)
+      ;(ensure query-obj)
       (alter query-obj update-result r))))
 
-(defn index-ready [qagents _ _ _ index]
+(defn index-ready [qrefs _ _ _ index]
   (if (empty? index)
     (do
-      (doseq [f @qfutures]
-        (deref f)) ; wait finish the searches
+      (doseq [t @query-threads]
+        (.join t)) ; wait finish the searches
       (shutdown-agents)
-      (doseq [q qagents]
+      (doseq [q qrefs]
         (print-result (:query @q) (:result @q))))
     (do
-      (doseq [q qagents]
-        (send qfutures conj (future (search q (first index))))))))
+      (doseq [q qrefs]
+        (def t (Thread. #(search q (first index))))
+        (.start t)
+        (send query-threads conj t)))))
 
 (defn process-search [raw-queries]
-  (def query-agents (for [raw-query raw-queries]
+  (def query-refs (for [raw-query raw-queries]
     (let [query (query/parseq raw-query)
-          qagent (ref {:raw-query raw-query :query query :result '()})]
-      qagent)))
+          qref (ref {:raw-query raw-query :query query :result '()})]
+      qref)))
 
-  (add-watch query-indices :index-ready #(index-ready query-agents %1 %2 %3 %4)))
+  (add-watch query-indices :index-ready #(index-ready query-refs %1 %2 %3 %4)))
