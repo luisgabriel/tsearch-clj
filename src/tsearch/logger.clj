@@ -16,13 +16,14 @@
 (defn message [msg]
   (send-off log conj msg))
 
-(defn file-processed [task-id file-path words files size]
+(defn file-processed [task-id file-path words iwords files size]
   (let [header (str separator "[Thread " task-id "]\n")
         file (str header "New file processed: " file-path "\n")
         kbytes (str file (format "Kbytes processed so far: %.3f\n" (/ size 1024.0)))
         files (str kbytes "Files processed so far: " files "\n")
-        words (str files "Words found so far: " words)]
-    (send-off log conj words)))
+        w (str files "Words found so far: " words "\n")
+        iw (str w "Words in the index: " iwords)]
+    (send-off log conj iw)))
 
 (defn index-completed [id nfiles]
   (def msg (str separator "Sub-index " id " completed. (" nfiles " files)"))

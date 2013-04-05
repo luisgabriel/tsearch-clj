@@ -1,4 +1,5 @@
 (ns tsearch.engine
+  (:require [clojure.set :as cjset])
   (:require [tsearch.lexer :as lexer])
   (:require [tsearch.buffer :as buffer])
   (:require [tsearch.index :as index])
@@ -12,6 +13,7 @@
 (def word-counter (ref 0))
 (def file-counter (ref 0))
 (def size-counter (ref 0))
+(def all-words (ref (hash-set)))
 
 (defn- next-file []
   (let[file (first (ensure files))]
@@ -47,17 +49,21 @@
         (send query-indices conj new-index)
         (logger/index-completed (:id new-index) (:nfiles new-index)))
       (buffer/put index-buffer new-index))
-    (dosync (alter word-counter #(+ % (first w-occurs-pair))))))
+    (let [words (dosync (alter word-counter #(+ % (first w-occurs-pair))))
+          word-set (dosync (alter all-words cjset/union (into #{} (keys occurrences))))]
+      [words (count word-set)])))
 
 (defn process-file-job [id max-files index-buffer]
   (while (> (count @files) 0)
     (let [file (dosync (next-file))]
       (if file
         (let [file-path (.getCanonicalPath file)
-              words (process-file file max-files index-buffer)
+              r (process-file file max-files index-buffer)
+              words (first r)
+              indexed-words (nth r 1)
               files (dosync (alter file-counter inc))
               size (dosync (alter size-counter #(+ % (.length file))))]
-          (logger/file-processed id file-path words files size))))))
+          (logger/file-processed id file-path words indexed-words files size))))))
 
 (defn process-files [nindices max-files nworkers fs]
   (let [index-buffer (buffer/newb (repeatedly nindices index/empty-index))]
