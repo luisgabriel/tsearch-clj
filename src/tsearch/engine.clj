@@ -52,7 +52,7 @@
           (logger/file-processed id file-path))))))
 
 (defn process-files [nindices max-files nworkers fs]
-  (let [index-buffer (buffer/newb (repeat nindices (index/empty-index)))]
+  (let [index-buffer (buffer/newb (repeatedly nindices index/empty-index))]
     (dosync (ref-set files fs))
 
     (def threads (for [i (range nworkers)]

@@ -1,5 +1,6 @@
 (ns tsearch.index)
 
+(def id-counter (ref 0))
 (def zero (Character/getNumericValue 0))
 
 (defn- dord [ch]
@@ -8,7 +9,7 @@
 (defn empty-index []
   (let[index (vec (repeat (+ (dord \z) 1) (hash-map)))]
     (dorun index)
-    { :index index :nfiles 0 :id 0 }))
+    { :index index :nfiles 0 :id (dosync (alter id-counter inc)) }))
 
 (defn insert [oc-pair index-obj]
   (let [filep (first oc-pair)
