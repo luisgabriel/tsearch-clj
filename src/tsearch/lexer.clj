@@ -31,5 +31,5 @@
   (let [words (tokenize content)]
     (loop [ws words i 0 hmap (hash-map)]
       (if (empty? ws)
-        hmap
-        (recur (rest ws) (+ i 1) (merge-with concat hmap (hash-map (first ws) (list i))))))))
+        [i hmap]
+        (recur (rest ws) (+ i 1) (update-in hmap [(first ws)] #(conj % i)))))))

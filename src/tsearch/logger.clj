@@ -16,10 +16,11 @@
 (defn message [msg]
   (send-off log conj msg))
 
-(defn file-processed [task-id file-path]
+(defn file-processed [task-id file-path words]
   (let [header (str separator "[Thread " task-id "]\n")
-        file (str header "New file processed: " file-path)]
-    (send-off log conj file)))
+        file (str header "New file processed: " file-path "\n")
+        words (str file "Words found so far: " words)]
+    (send-off log conj words)))
 
 (defn index-completed [id nfiles]
   (def msg (str separator "Sub-index " id " completed. (" nfiles " files)"))

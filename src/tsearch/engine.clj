@@ -9,6 +9,8 @@
 (def query-indices (agent '()))
 (def query-threads (agent '()))
 
+(def word-counter (ref 0))
+
 (defn- next-file []
   (let[file (first (ensure files))]
     (alter files rest)
@@ -32,7 +34,8 @@
 (defn process-file [file max-files index-buffer]
   (let [file-path (.getCanonicalPath file)]
     (def content (slurp file))
-    (def occurrences (lexer/process-content content))
+    (def w-occurs-pair (lexer/process-content content))
+    (def occurrences (nth w-occurs-pair 1))
     (def index (buffer/enqueue index-buffer))
     (def new-index (index/insert [file-path occurrences] index))
     (if (= (:nfiles new-index) max-files)
@@ -41,15 +44,16 @@
         (dorun (:index new-index))
         (send query-indices conj new-index)
         (logger/index-completed (:id new-index) (:nfiles new-index)))
-      (buffer/put index-buffer new-index))))
+      (buffer/put index-buffer new-index))
+    (dosync (alter word-counter #(+ % (first w-occurs-pair))))))
 
 (defn process-file-job [id max-files index-buffer]
   (while (> (count @files) 0)
     (let [file (dosync (next-file))]
       (if file
-        (let [file-path (.getCanonicalPath file)]
-          (process-file file max-files index-buffer)
-          (logger/file-processed id file-path))))))
+        (let [file-path (.getCanonicalPath file)
+              words (process-file file max-files index-buffer)]
+          (logger/file-processed id file-path words))))))
 
 (defn process-files [nindices max-files nworkers fs]
   (let [index-buffer (buffer/newb (repeatedly nindices index/empty-index))]
