@@ -14,9 +14,5 @@
 
   (def files (scanner/all-files (first args)))
 
-  (println (str "Path: " (first args)) "   Files:" (count files))
-
   (engine/process-files nindices max-files nworkers files)
-  (engine/process-search (rest args))
-
-)
+  (engine/process-search (rest args)))

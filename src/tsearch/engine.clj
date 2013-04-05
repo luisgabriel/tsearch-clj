@@ -2,7 +2,8 @@
   (:require [tsearch.lexer :as lexer])
   (:require [tsearch.buffer :as buffer])
   (:require [tsearch.index :as index])
-  (:require [tsearch.query :as query]))
+  (:require [tsearch.query :as query])
+  (:require [tsearch.logger :as logger]))
 
 (def files (ref '()))
 (def query-indices (agent '()))
@@ -19,7 +20,8 @@
       (if (> (:nfiles index) 0)
         (do
           (dorun (:index index))
-          (send query-indices conj index))))))
+          (send query-indices conj index)
+          (logger/index-completed (:id index) (:nfiles index)))))))
 
 (defn waiter [threads index-buffer]
   (doseq [thread threads]
@@ -37,7 +39,8 @@
       (do
         (buffer/put index-buffer (index/empty-index))
         (dorun (:index new-index))
-        (send query-indices conj new-index))
+        (send query-indices conj new-index)
+        (logger/index-completed (:id new-index) (:nfiles new-index)))
       (buffer/put index-buffer new-index))))
 
 (defn process-file-job [id max-files index-buffer]
@@ -46,7 +49,7 @@
       (if file
         (let [file-path (.getCanonicalPath file)]
           (process-file file max-files index-buffer)
-          (println "Thread" id "-> " file-path))))))
+          (logger/file-processed id file-path))))))
 
 (defn process-files [nindices max-files nworkers fs]
   (let [index-buffer (buffer/newb (repeat nindices (index/empty-index)))]
@@ -59,11 +62,6 @@
 
     (.start (Thread. #(waiter threads index-buffer)))))
 
-(defn- print-result [query results]
-  (println "RESULT for" (str "\"" query "\":"))
-  (doseq [pair results]
-    (println "File:" (first pair) "    Occurrences:" (nth pair 1))))
-
 (defn update-result [query-obj r]
   (let [results (:result query-obj)
         temp (dissoc query-obj :result)
@@ -75,6 +73,7 @@
   (let [query (:query @query-obj)
         r (query/perform query index)]
     (dorun r)
+    (logger/query-performed query (:id index))
     (dosync
       ;(ensure query-obj)
       (alter query-obj update-result r))))
@@ -84,9 +83,9 @@
     (do
       (doseq [t @query-threads]
         (.join t)) ; wait finish the searches
-      (shutdown-agents)
       (doseq [q qrefs]
-        (print-result (:query @q) (:result @q))))
+        (logger/search-performed (:query @q) (:result @q)))
+      (logger/finish))
     (do
       (doseq [q qrefs]
         (def t (Thread. #(search q (first index))))
