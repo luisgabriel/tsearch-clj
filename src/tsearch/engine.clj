@@ -25,7 +25,6 @@
     (let [index (buffer/try-enqueue index-buffer)]
       (if (> (:nfiles index) 0)
         (do
-          (dorun (:index index))
           (send query-indices conj index)
           (logger/index-completed (:id index) (:nfiles index)))))))
 
@@ -45,7 +44,6 @@
     (if (= (:nfiles new-index) max-files)
       (do
         (buffer/put index-buffer (index/empty-index))
-        (dorun (:index new-index))
         (send query-indices conj new-index)
         (logger/index-completed (:id new-index) (:nfiles new-index)))
       (buffer/put index-buffer new-index))
@@ -86,7 +84,6 @@
 (defn search[query-obj index]
   (let [query (:query @query-obj)
         r (query/perform query index)]
-    (dorun r)
     (logger/query-performed query (:id index))
     (dosync
       ;(ensure query-obj)

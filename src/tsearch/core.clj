@@ -8,9 +8,9 @@
   ;; work around dangerous default behaviour in Clojure
   (alter-var-root #'*read-eval* (constantly false))
 
-  (def nworkers 3)  ; number of indexing threads
-  (def nindices 4)  ; initial sub-indices
-  (def max-files 3) ; max number of files indexed per sub-index
+  (def nworkers 12)  ; number of indexing threads
+  (def nindices 5)  ; initial sub-indices
+  (def max-files 5) ; max number of files indexed per sub-index
 
   (def files (scanner/all-files (first args)))
 

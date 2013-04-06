@@ -23,13 +23,20 @@
   (if (.equals (str \newline) (str c)) \space (Character/toLowerCase c)))
 
 (defn tokenize [content]
-  (let [filtered (filter is-valid content)
-        lowered (map lower-and-replace filtered)]
-    (cjstr/split (apply str lowered) #"\s+")))
+  (loop [cs content r (transient [])]
+    (if (empty? cs)
+      (cjstr/split (apply str (persistent! r)) #"\s+")
+      (let [ch (first cs)]
+        (if (is-valid ch)
+          (recur (rest cs) (conj! r (lower-and-replace ch)))
+          (recur (rest cs) r))))))
 
 (defn process-content [content]
   (let [words (tokenize content)]
-    (loop [ws words i 0 hmap (hash-map)]
+    (loop [ws words i 0 hmap (transient (hash-map))]
       (if (empty? ws)
-        [i hmap]
-        (recur (rest ws) (+ i 1) (update-in hmap [(first ws)] #(conj % i)))))))
+        [i (persistent! hmap)]
+        (let [hkey (first ws)
+              old-val (get hmap hkey)
+              new-val (if (nil? old-val) [i] (conj old-val i))]
+        (recur (rest ws) (+ i 1) (assoc! hmap hkey new-val)))))))
