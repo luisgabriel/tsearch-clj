@@ -98,7 +98,8 @@
       (doseq [t @query-threads]
         (.join t)) ; wait finish the searches
       (doseq [q qrefs]
-        (logger/search-performed (:query @q) (:result @q)))
+        (def ordered-result (sort-by (fn [e] [(/ 1.0 (nth e 1)) (first e)]) (:result @q)))
+        (logger/search-performed (:query @q) ordered-result))
       (logger/finish))
     (do
       (doseq [q qrefs]
