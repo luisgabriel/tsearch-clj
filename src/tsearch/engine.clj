@@ -79,18 +79,21 @@
 (defn update-result [query-obj r]
   (let [results (:result query-obj)
         temp (dissoc query-obj :result)
-        new-result (concat results r)
-        return (assoc temp :result new-result)]
+        new-time (+ (first results) (first r))
+        new-result (concat (nth results 1) (nth r 1))
+        return (assoc temp :result [new-time new-result])]
     return))
 
 (defn search[query-obj index]
-  (let [query (:query @query-obj)
-        r (query/perform query index)]
-    (dorun r)
+  (let [query (:query @query-obj)]
+    (def start (System/currentTimeMillis))
+    (def r (doall (query/perform query index)))
+    (def end (System/currentTimeMillis))
+    (def diff (- end start))
     (logger/query-performed query (:id index))
     (dosync
       ;(ensure query-obj)
-      (alter query-obj update-result r))))
+      (alter query-obj update-result [diff r]))))
 
 (defn index-ready [qrefs _ _ _ index]
   (if (empty? index)
@@ -98,8 +101,10 @@
       (doseq [t @query-threads]
         (.join t)) ; wait finish the searches
       (doseq [q qrefs]
-        (def ordered-result (sort-by (fn [e] [(/ 1.0 (nth e 1)) (first e)]) (:result @q)))
-        (logger/search-performed (:query @q) ordered-result))
+        (def r (nth (:result @q) 1))
+        (def diff (first (:result @q)))
+        (def ordered-result (sort-by (fn [e] [(/ 1.0 (nth e 1)) (first e)]) r))
+        (logger/search-performed (:query @q) [diff ordered-result]))
       (logger/finish))
     (do
       (doseq [q qrefs]
@@ -110,7 +115,7 @@
 (defn process-search [raw-queries]
   (def query-refs (for [raw-query raw-queries]
     (let [query (query/parseq raw-query)
-          qref (ref {:raw-query raw-query :query query :result '()})]
+          qref (ref {:raw-query raw-query :query query :result [0 []]})]
       qref)))
 
   (add-watch query-indices :index-ready #(index-ready query-refs %1 %2 %3 %4)))

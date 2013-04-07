@@ -34,13 +34,15 @@
   (send-off log conj msg))
 
 (defn search-performed[query results]
-  (let [header (str "RESULT for " (str "\"" query "\":\n"))]
-    (loop [msg (str separator header) rs results]
-      (if (empty? rs)
-        (send-off log conj msg)
-        (let[pair (first rs)
-             file (first pair)
-             occurrences (nth pair 1)
-             line (str "File: " file "    Occurrences: " occurrences "\n")]
-          (recur (str msg line) (rest rs)))))))
-
+  (let [header (str "RESULT for " (str "\"" query "\":\n\n"))
+        files (loop [msg (str separator header) rs (take 50 (nth results 1))]
+          (if (empty? rs)
+            msg
+            (let[pair (first rs)
+                 file (first pair)
+                 occurrences (nth pair 1)
+                 line (str "File: " file "    Occurrences: " occurrences "\n")]
+              (recur (str msg line) (rest rs)))))
+        matches (str files "\nTotal matching files: " (count (nth results 1)))
+        qtime (str matches "\nQuery time: " (first results) " ms")]
+     (send-off log conj qtime)))
