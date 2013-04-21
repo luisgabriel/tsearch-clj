@@ -1,19 +1,29 @@
 (ns tsearch.index)
 
-(defn insert [pair index]
-  (let [file-path (nth pair 0)
-        occurrences (seq (nth pair 1))]
-    (loop [ocs occurrences new-index index]
+(def zero (Character/getNumericValue \0))
+
+(defn- dord [ch]
+  (- (Character/getNumericValue ch) zero))
+
+(defn empty-index []
+  (vec (repeat (+ (dord \z) 1) (hash-map))))
+
+(defn insert [oc-pair index]
+  (let [filep (first oc-pair)
+        occurrences (seq (nth oc-pair 1))]
+    (loop [ocs occurrences ind index]
       (if (empty? ocs)
-        new-index
+        ind
         (let [oc-pair (first ocs)
               word (key oc-pair)
-              positions (val oc-pair)]
-          (recur (rest ocs) (merge-with concat new-index (hash-map word (list [file-path positions])))))))))
+              positions (val oc-pair)
+              voc-pos (dord (first word))
+              voc (nth ind voc-pos)
+              new-voc (update-in voc [word] #(conj % [filep positions]))
+              new-index (assoc ind voc-pos new-voc)]
+          (recur (rest ocs) new-index))))))
 
-(defn build-index [occurrences]
-  (loop [ocs occurrences index (hash-map)]
-    (if (empty? ocs)
-      index
-      (recur (rest ocs) (insert (first ocs) index)))))
-
+(defn find-oc [word index]
+  (let [voc (nth index (dord (first word)))
+        result (find voc word)]
+    (if result (val result) '())))

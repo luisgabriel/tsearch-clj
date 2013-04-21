@@ -1,4 +1,5 @@
 (ns tsearch.query
+  (:require [tsearch.index :as index])
   (:require [tsearch.lexer :as lexer]))
 
 (defn parseq [content]
@@ -10,7 +11,7 @@
         insert-f (fn [hmap2 pair2]
                    (let [path (nth pair2 0)
                          positions (nth pair2 1)]
-                     (merge-with concat hmap2 (hash-map path (list [word positions])))))]
+                     (update-in hmap2 [path] #(conj % [word positions]))))]
     (reduce insert-f hmap occur-list)))
 
 (defn filter-successors [l1 l2]
@@ -30,16 +31,17 @@
   (count-o (map #(nth % 1) words-occurs)))
 
 (defn perform [words index]
-  (let [all-occurrences (map (fn [w] [w (val (find index w))]) words)
-        queryMap (reduce insert (hash-map) all-occurrences)
-        wordCounter (count words)
-        filteredMap (select-keys queryMap (for [[k v] queryMap :when (= (count v) wordCounter)] k))]
-    (loop [pairs (seq filteredMap) acc (list)]
+  (let [all-occurrences (map (fn [w] [w (index/find-oc w index)]) words)
+        query-map (reduce insert (hash-map) all-occurrences)
+        word-counter (count words)]
+    (loop [pairs (seq query-map) acc (list)]
       (if (empty? pairs)
         acc
-        (let [file-path (key (first pairs))
-              words-occurs (val (first pairs))
-              matches (count-occurrences words-occurs)]
-          (if (> matches 0)
-            (recur (rest pairs) (conj acc [file-path matches]))
+        (let [words-occurs (val (first pairs))]
+          (if (= (count words-occurs) word-counter)
+            (let [file-path (key (first pairs))
+                  matches (count-occurrences (reverse words-occurs))]
+              (if (> matches 0)
+                (recur (rest pairs) (conj acc [file-path matches]))
+                (recur (rest pairs) acc)))
             (recur (rest pairs) acc)))))))

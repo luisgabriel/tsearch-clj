@@ -5,22 +5,23 @@
   (:require [tsearch.query :as query])
   (:gen-class))
 
-(defn all-occurrences [files]
-  (loop [fs files acc (list)]
-    (if (empty? fs)
-      acc
-      (let [file (first fs)
-            content (slurp file)
-            occurrences (lexer/process-content content)]
-        (recur (rest fs) (conj acc [(.getCanonicalPath file) occurrences]))))))
+(defn occurrences [file]
+  (let [content (slurp file)
+        occurrences (lexer/process-content content)]
+    [(.getCanonicalPath file) occurrences]))
 
 (defn -main [& args]
   ;; work around dangerous default behaviour in Clojure
   (alter-var-root #'*read-eval* (constantly false))
 
   (def files (scanner/all-files (first args)))
-  (def occurrences (all-occurrences files))
-  (def global-index (index/build-index occurrences))
+
+  (def global-index
+    (loop [index (index/empty-index) fs files]
+      (if (empty? fs)
+        index
+        (let [ocs (occurrences (first fs))]
+          (recur (index/insert ocs index) (rest fs))))))
 
   (println (str "Path: " (first args)))
   (println (pr-str (query/perform (query/parseq (nth args 1)) global-index)))
