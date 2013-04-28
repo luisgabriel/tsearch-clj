@@ -3,4 +3,4 @@
 
 (defn all-files [path]
   (let [entries (file-seq (cjio/file path))]
-      (filter (memfn isFile) entries)))
+      (filter (fn [^java.io.File file] (.isFile file)) entries)))

@@ -5,12 +5,14 @@
   (:require [tsearch.query :as query])
   (:gen-class))
 
+(set! *warn-on-reflection* true)
+
 (defn print-result [result]
   (def ordered-result (sort-by (fn [e] [(/ 1.0 (nth e 1)) (first e)]) result))
   (doseq [pair ordered-result]
     (println "File: " (first pair) "    Occurrences: " (nth pair 1))))
 
-(defn occurrences [file]
+(defn occurrences [^java.io.File file]
   (let [content (slurp file)
         occurrences (lexer/process-content content)]
     [(.getCanonicalPath file) occurrences]))
