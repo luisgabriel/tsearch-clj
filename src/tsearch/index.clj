@@ -1,7 +1,7 @@
 (ns tsearch.index)
 
 (def id-counter (ref 0))
-(def zero (Character/getNumericValue 0))
+(def zero (Character/getNumericValue (char \0)))
 
 (defn- dord [ch]
   (- (Character/getNumericValue ch) zero))

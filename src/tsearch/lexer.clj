@@ -1,26 +1,24 @@
 (ns tsearch.lexer
   (:require [clojure.string :as cjstr]))
 
-(def a (Character/getNumericValue \a))
-(def z (Character/getNumericValue \z))
-(def A (Character/getNumericValue \A))
-(def Z (Character/getNumericValue \Z))
-(def zero (Character/getNumericValue \0))
-(def nine (Character/getNumericValue \9))
+(defn char-val [c]
+  (Character/getNumericValue (char c)))
 
 (defn is-ascii-alpha-num [c]
-  (let [n (Character/getNumericValue c)]
-    (or (and (>= n a) (<= n z))
-        (and (>= n A) (<= n Z))
-        (and (>= n zero) (<= n nine)))))
+  (let [n (Character/getNumericValue (char c))]
+    (or (and (>= n (char-val \a)) (<= n (char-val \z)))
+        (and (>= n (char-val \A)) (<= n (char-val \Z)))
+        (and (>= n (char-val \0)) (<= n (char-val \9))))))
 
 (defn is-valid [c]
     (or (is-ascii-alpha-num c)
-        (Character/isSpaceChar c)
+        (Character/isSpaceChar (char c))
         (.equals (str \newline) (str c))))
 
 (defn lower-and-replace [c]
-  (if (.equals (str \newline) (str c)) \space (Character/toLowerCase c)))
+  (if (.equals (str \newline) (str c))
+    \space
+    (Character/toLowerCase (char c))))
 
 (defn tokenize [content]
   (let [filtered (filter is-valid content)
@@ -32,4 +30,4 @@
     (loop [ws words i 0 hmap (hash-map)]
       (if (empty? ws)
         [i hmap]
-        (recur (rest ws) (+ i 1) (update-in hmap [(first ws)] #(conj % i)))))))
+        (recur (rest ws) (inc i) (update-in hmap [(first ws)] #(conj % i)))))))
